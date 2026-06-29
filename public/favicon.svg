@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs><linearGradient id="spark-bg" x1="16" y1="12" x2="112" y2="116" gradientUnits="userSpaceOnUse"><stop stop-color="#0ea5e9"/><stop offset="0.5" stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+  <rect width="128" height="128" rx="30" fill="url(#spark-bg)"/>
+  <path d="M25 79V39c13 2 25 6 36 15v42C51 88 38 82 25 79Z" fill="#fff" opacity="0.95"/>
+  <path d="M103 79V39c-13 2-25 6-36 15v42c10-8 23-14 36-17Z" fill="#fff" opacity="0.95"/>
+  <path d="M64 51v46" stroke="#dff7ff" stroke-width="5" stroke-linecap="round"/>
+  <path d="M43 54c6 1 11 3 16 7" stroke="#2563eb" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M85 54c-6 1-11 3-16 7" stroke="#7c3aed" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M64 16l6 15 15 6-15 6-6 15-6-15-15-6 15-6 6-15Z" fill="#fbbf24"/>
+  <circle cx="84" cy="69" r="5" fill="#06b6d4"/><circle cx="95" cy="58" r="4" fill="#8b5cf6"/>
+  <path d="M84 69l11-11" stroke="#312e81" stroke-width="3" stroke-linecap="round"/>
+</svg>

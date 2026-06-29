@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 144" role="img" aria-labelledby="title desc">
+  <title id="title">Study SparkAI</title><desc id="desc">Study SparkAI wordmark with an open book, learning spark, and AI nodes.</desc>
+  <defs><linearGradient id="spark-text" x1="285" y1="30" x2="454" y2="78"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+  <image href="./logo-mark.svg" x="16" y="16" width="112" height="112"/>
+  <text x="152" y="66" fill="#0f172a" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="900">Study</text>
+  <text x="285" y="66" fill="url(#spark-text)" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="900">SparkAI</text>
+  <text x="154" y="101" fill="#64748b" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">Ignite Learning. Empower Every Mind.</text>
+</svg>
