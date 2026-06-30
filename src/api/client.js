@@ -30,6 +30,7 @@ export function getApiErrorMessage(error, fallback = 'Something went wrong. Plea
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4009/api',
   withCredentials: true,
+  timeout: 30_000,
 });
 
 api.interceptors.request.use((config) => {
