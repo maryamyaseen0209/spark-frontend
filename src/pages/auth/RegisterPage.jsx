@@ -108,13 +108,16 @@ export default function RegisterPage() {
               We sent a 6-digit code to <strong>{pendingEmail}</strong>. Enter it below to create your account.
             </motion.p>
             {devCode && (
-              <motion.div
+              <motion.details
                 variants={staggerItem}
                 className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100"
               >
-                SMTP is not configured or the email could not be delivered. Use this code to complete registration:
-                <div className="mt-2 rounded-lg bg-white px-3 py-2 text-base font-semibold text-slate-900 dark:bg-slate-900 dark:text-white">{devCode}</div>
-              </motion.div>
+                <summary className="cursor-pointer font-medium">Didn't receive the email? Show verification code</summary>
+                <div className="mt-2">
+                  <p className="mb-2">If the email hasn't arrived (check spam), use this code to complete registration:</p>
+                  <div className="rounded-lg bg-white px-3 py-2 text-base font-semibold text-slate-900 dark:bg-slate-900 dark:text-white">{devCode}</div>
+                </div>
+              </motion.details>
             )}
             <motion.div variants={staggerItem}>
               <input className="input text-center text-lg tracking-[0.4em]" placeholder="000000" maxLength={6} {...register('code', { required: 'Verification code is required', minLength: { value: 6, message: 'Enter all 6 digits' } })} />
