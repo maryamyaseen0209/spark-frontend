@@ -14,6 +14,7 @@ export default function RegisterPage() {
   const { register, handleSubmit, reset, setValue, getValues, formState: { errors, isSubmitting } } = useForm({ defaultValues: { role: 'student' } });
   const [response, setResponse] = useState(null);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [devCode, setDevCode] = useState('');
   const auth = useAuth();
   const navigate = useNavigate();
 
@@ -23,6 +24,7 @@ export default function RegisterPage() {
       if (!pendingEmail) {
         const res = await auth.startRegistration({ ...data, termsAccepted: data.termsAccepted ? 'true' : 'false' });
         setPendingEmail(res.email);
+        setDevCode(res.devCode || '');
         setValue('email', res.email);
         setResponse({ type: 'success', message: res.message });
         return;
@@ -105,6 +107,15 @@ export default function RegisterPage() {
             >
               We sent a 6-digit code to <strong>{pendingEmail}</strong>. Enter it below to create your account.
             </motion.p>
+            {devCode && (
+              <motion.div
+                variants={staggerItem}
+                className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100"
+              >
+                SMTP is not configured or the email could not be delivered. Use this code to complete registration:
+                <div className="mt-2 rounded-lg bg-white px-3 py-2 text-base font-semibold text-slate-900 dark:bg-slate-900 dark:text-white">{devCode}</div>
+              </motion.div>
+            )}
             <motion.div variants={staggerItem}>
               <input className="input text-center text-lg tracking-[0.4em]" placeholder="000000" maxLength={6} {...register('code', { required: 'Verification code is required', minLength: { value: 6, message: 'Enter all 6 digits' } })} />
               <FieldError message={errors.code?.message} />
@@ -113,7 +124,7 @@ export default function RegisterPage() {
               type="button"
               variants={staggerItem}
               className="text-sm font-semibold text-spark-500 hover:text-spark-700 dark:text-spark-300"
-              onClick={() => setPendingEmail('')}
+              onClick={() => { setPendingEmail(''); setDevCode(''); }}
             >
               Use a different email
             </motion.button>
