@@ -19,9 +19,15 @@ export default function RegisterPage() {
 
   const onSubmit = async (data) => {
     try {
-      setResponse({ type: 'loading', message: pendingEmail ? 'Verifying your email...' : 'Sending verification code...' });
+      setResponse({ type: 'loading', message: pendingEmail ? 'Verifying your email...' : 'Creating your account...' });
       if (!pendingEmail) {
         const res = await auth.startRegistration({ ...data, termsAccepted: data.termsAccepted ? 'true' : 'false' });
+        if (res.user) {
+          setResponse({ type: 'success', message: res.message });
+          reset();
+          navigate('/dashboard', { replace: true });
+          return;
+        }
         setPendingEmail(res.email);
         setValue('email', res.email);
         setResponse({ type: 'success', message: res.message });
@@ -127,7 +133,7 @@ export default function RegisterPage() {
           className="btn-primary w-full"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Please wait...' : pendingEmail ? 'Verify and enter dashboard' : 'Send verification code'}
+          {isSubmitting ? 'Please wait...' : pendingEmail ? 'Verify and enter dashboard' : 'Create account'}
         </motion.button>
 
         <motion.p variants={staggerItem} className="text-sm text-slate-500 dark:text-slate-400">

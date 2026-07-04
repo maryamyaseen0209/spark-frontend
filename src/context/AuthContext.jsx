@@ -50,6 +50,11 @@ export function AuthProvider({ children }) {
     async startRegistration(payload) {
       try {
         const res = await api.post('/auth/register/start', payload);
+        if (res.data.user) {
+          setUser(res.data.user);
+          storeUser(res.data.user);
+          storeTokens({ accessToken: res.data.accessToken, refreshToken: res.data.refreshToken });
+        }
         return res.data;
       } catch (error) {
         toast.error(getApiErrorMessage(error));
