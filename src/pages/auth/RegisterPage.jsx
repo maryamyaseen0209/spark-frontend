@@ -82,16 +82,6 @@ export default function RegisterPage() {
             </motion.div>
 
             <motion.div variants={staggerItem}>
-              <input className="input" placeholder="Security question, e.g. What city were you born in?" {...register('securityQuestion', { required: 'Security question is required', minLength: { value: 6, message: 'Use at least 6 characters' } })} />
-              <FieldError message={errors.securityQuestion?.message} />
-            </motion.div>
-
-            <motion.div variants={staggerItem}>
-              <input className="input" placeholder="Security answer" {...register('securityAnswer', { required: 'Security answer is required', minLength: { value: 2, message: 'Use at least 2 characters' } })} />
-              <FieldError message={errors.securityAnswer?.message} />
-            </motion.div>
-
-            <motion.div variants={staggerItem}>
               <select className="input" {...register('role')}>
                 <option value="student">Student</option>
                 <option value="teacher">Teacher</option>
