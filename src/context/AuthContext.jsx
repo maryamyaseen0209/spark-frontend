@@ -104,7 +104,9 @@ export function AuthProvider({ children }) {
     async resetPassword(tokenOrEmail, passwordOrCode, maybePassword) {
       try {
         let payload;
-        if (maybePassword !== undefined) {
+        if (typeof tokenOrEmail === 'object') {
+          payload = tokenOrEmail;
+        } else if (maybePassword !== undefined) {
           payload = { email: tokenOrEmail, code: passwordOrCode, password: maybePassword };
         } else {
           payload = { token: tokenOrEmail, password: passwordOrCode };
