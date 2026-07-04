@@ -6,7 +6,6 @@ import LoginPage from './pages/auth/LoginPage.jsx';
 import RegisterPage from './pages/auth/RegisterPage.jsx';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage.jsx';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage.jsx';
-import VerifyEmailPage from './pages/auth/VerifyEmailPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
@@ -37,7 +36,6 @@ function AnimatedRoutes() {
         <Route path="/register" element={<PageTransition><RegisterPage /></PageTransition>} />
         <Route path="/forgot-password" element={<PageTransition><ForgotPasswordPage /></PageTransition>} />
         <Route path="/reset-password" element={<PageTransition><ResetPasswordPage /></PageTransition>} />
-        <Route path="/verify-email" element={<PageTransition><VerifyEmailPage /></PageTransition>} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <ErrorBoundary>
