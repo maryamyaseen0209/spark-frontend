@@ -4,6 +4,8 @@ import {
   Bot,
   Brain,
   Check,
+  ChevronRight,
+  Code2,
   Copy,
   FileText,
   Lightbulb,
@@ -16,6 +18,229 @@ import {
   Zap,
 } from 'lucide-react';
 import { api, getApiErrorMessage } from '../api/client.js';
+
+function renderInline(text) {
+  if (!text) return null;
+  const parts = [];
+  let remaining = text;
+  let key = 0;
+  const tokenRegex = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/;
+
+  while (remaining) {
+    const match = remaining.match(tokenRegex);
+    if (!match) {
+      parts.push(remaining);
+      break;
+    }
+    const idx = match.index;
+    if (idx > 0) parts.push(remaining.slice(0, idx));
+    const token = match[0];
+    if (token.startsWith('**') && token.endsWith('**')) {
+      parts.push(
+        <strong key={key++} className="font-semibold text-slate-900 dark:text-white">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith('`') && token.endsWith('`')) {
+      parts.push(
+        <code key={key++} className="rounded bg-purple-100 px-1.5 py-0.5 font-mono text-xs text-purple-700 dark:bg-purple-950/70 dark:text-purple-300">
+          {token.slice(1, -1)}
+        </code>
+      );
+    } else if (token.startsWith('*') && token.endsWith('*')) {
+      parts.push(
+        <em key={key++} className="italic text-slate-700 dark:text-slate-300">
+          {token.slice(1, -1)}
+        </em>
+      );
+    }
+    remaining = remaining.slice(idx + token.length);
+  }
+  return parts;
+}
+
+function FormattedAiContent({ content }) {
+  if (!content) return null;
+
+  // Split into lines for structured human-readable rendering
+  const lines = String(content).split('\n');
+  const elements = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Skip empty lines
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+
+    // Horizontal Rule
+    if (/^---{1,}$/.test(trimmed)) {
+      elements.push(<hr key={i} className="my-3 border-slate-200 dark:border-slate-800" />);
+      i++;
+      continue;
+    }
+
+    // Code Blocks
+    if (trimmed.startsWith('```')) {
+      const lang = trimmed.slice(3).trim();
+      const codeLines = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing ```
+      const fullCode = codeLines.join('\n');
+      elements.push(
+        <div key={i} className="my-3 overflow-hidden rounded-xl bg-slate-900 text-slate-100 shadow-md">
+          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950/60 px-4 py-1.5 text-xs text-slate-400">
+            <span className="flex items-center gap-1.5 font-mono">
+              <Code2 className="h-3.5 w-3.5 text-purple-400" /> {lang || 'code'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(fullCode);
+                toast.success('Code copied!');
+              }}
+              className="hover:text-white"
+            >
+              Copy
+            </button>
+          </div>
+          <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-purple-200">
+            <code>{fullCode}</code>
+          </pre>
+        </div>
+      );
+      continue;
+    }
+
+    // Markdown Table Detection
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      const tableLines = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+      if (tableLines.length >= 2) {
+        const headerRow = tableLines[0].split('|').slice(1, -1).map((c) => c.trim());
+        const dataRows = tableLines.slice(2).map((r) => r.split('|').slice(1, -1).map((c) => c.trim()));
+        elements.push(
+          <div key={i} className="my-3 overflow-x-auto rounded-xl border border-slate-200 shadow-sm dark:border-slate-800">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-purple-50/80 text-purple-900 dark:bg-slate-800/80 dark:text-purple-300">
+                <tr>
+                  {headerRow.map((col, idx) => (
+                    <th key={idx} className="px-3.5 py-2.5 font-bold border-b border-slate-200 dark:border-slate-700">
+                      {renderInline(col)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
+                {dataRows.map((row, rIdx) => (
+                  <tr key={rIdx} className="hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
+                    {row.map((cell, cIdx) => (
+                      <td key={cIdx} className="px-3.5 py-2 text-slate-700 dark:text-slate-300">
+                        {renderInline(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+        continue;
+      }
+    }
+
+    // Headings
+    if (trimmed.startsWith('### ')) {
+      elements.push(
+        <h4 key={i} className="mt-4 mb-1.5 flex items-center gap-1.5 text-sm font-bold text-purple-700 dark:text-purple-300">
+          <Sparkles className="h-4 w-4 text-amber-500 shrink-0" />
+          <span>{renderInline(trimmed.slice(4))}</span>
+        </h4>
+      );
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith('## ')) {
+      elements.push(
+        <h3 key={i} className="mt-4 mb-2 text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 pb-1 dark:border-slate-800">
+          {renderInline(trimmed.slice(3))}
+        </h3>
+      );
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith('# ')) {
+      elements.push(
+        <h2 key={i} className="mt-4 mb-2 text-lg font-black text-slate-900 dark:text-white">
+          {renderInline(trimmed.slice(2))}
+        </h2>
+      );
+      i++;
+      continue;
+    }
+
+    // Blockquote / Tip / Recall box
+    if (trimmed.startsWith('>')) {
+      const quoteText = trimmed.replace(/^>\s*/, '');
+      elements.push(
+        <blockquote key={i} className="my-2.5 rounded-r-xl border-l-4 border-purple-500 bg-purple-50/70 p-3 text-xs leading-relaxed text-slate-800 dark:bg-purple-950/30 dark:text-purple-200 shadow-sm">
+          {renderInline(quoteText)}
+        </blockquote>
+      );
+      i++;
+      continue;
+    }
+
+    // Bullet List Items
+    if (/^[-*•]\s+/.test(trimmed)) {
+      const itemText = trimmed.replace(/^[-*•]\s+/, '');
+      elements.push(
+        <div key={i} className="flex items-start gap-2.5 my-1 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+          <span className="mt-2 h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0" />
+          <div>{renderInline(itemText)}</div>
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    // Numbered List Items
+    const numMatch = trimmed.match(/^(\d+)[.)]\s+(.*)$/);
+    if (numMatch) {
+      elements.push(
+        <div key={i} className="flex items-start gap-2.5 my-1.5 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-purple-100 text-[11px] font-bold text-purple-700 dark:bg-purple-900/60 dark:text-purple-200">
+            {numMatch[1]}
+          </span>
+          <div className="pt-0.5">{renderInline(numMatch[2])}</div>
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    // Standard Paragraph
+    elements.push(
+      <p key={i} className="my-1.5 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
+        {renderInline(trimmed)}
+      </p>
+    );
+    i++;
+  }
+
+  return <div className="space-y-1">{elements}</div>;
+}
 
 const subjects = [
   'General',
@@ -260,7 +485,11 @@ export default function StudyAssistantPanel({ role }) {
                       : 'bg-slate-50 border border-slate-200 text-slate-800 dark:bg-slate-900/60 dark:border-slate-800 dark:text-slate-100 rounded-bl-none shadow-sm'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                  {msg.role === 'assistant' ? (
+                    <FormattedAiContent content={msg.content} />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                  )}
 
                   {msg.role === 'assistant' && (
                     <button
@@ -440,8 +669,8 @@ export default function StudyAssistantPanel({ role }) {
                     <p className="text-xs">Generating study summary & key takeaways...</p>
                   </div>
                 ) : summaryResult ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-                    {summaryResult}
+                  <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                    <FormattedAiContent content={summaryResult} />
                   </div>
                 ) : (
                   <div className="h-64 flex flex-col items-center justify-center text-center text-slate-400 p-6">
