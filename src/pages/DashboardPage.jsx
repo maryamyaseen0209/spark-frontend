@@ -1,6 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Activity, Bell, BookOpen, FolderOpen, GraduationCap, LogOut, Menu, ShieldCheck, Sparkles, UserCircle, X } from 'lucide-react';
+import {
+  Activity,
+  BarChart2,
+  Bell,
+  BookOpen,
+  CheckCircle2,
+  FileText,
+  FolderOpen,
+  GraduationCap,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessageSquare,
+  ShieldCheck,
+  Sparkles,
+  UserCircle,
+  Video,
+  X,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, getApiErrorMessage } from '../api/client.js';
 import AnalyticsPanel from '../components/AnalyticsPanel.jsx';
@@ -13,6 +31,7 @@ import MeetingPanel from '../components/MeetingPanel.jsx';
 import NotificationCenter from '../components/NotificationCenter.jsx';
 import QuizPanel from '../components/QuizPanel.jsx';
 import ResourcePanel from '../components/ResourcePanel.jsx';
+import StudyAssistantPanel from '../components/StudyAssistantPanel.jsx';
 import StatCard from '../components/StatCard.jsx';
 import ProfileDropdown from '../components/ProfileDropdown.jsx';
 import ThemeToggle from '../components/ThemeToggle.jsx';
@@ -81,19 +100,29 @@ export default function DashboardPage() {
   };
 
   const stats = dashboard?.stats || [];
-  const navItems = useMemo(() => [
-    { id: 'home', label: 'Dashboard' },
-    { id: 'classrooms', label: 'Classrooms' },
-    ...(user?.role === 'student' ? [{ id: 'assignments', label: 'Assignments' }] : []),
-    { id: 'quizzes', label: 'AI Quizzes', badge: unreadByType.quizzes },
-    { id: 'analytics', label: user?.role === 'student' ? 'Progress' : 'Analytics' },
-    { id: 'resources', label: 'Resources' },
-    { id: 'meetings', label: 'Meetings', badge: unreadByType.meetings },
-    ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin Suite' }] : []),
-    { id: 'messages', label: user?.role === 'student' ? 'Chat' : 'Messages', badge: unreadByType.messages },
-    { id: 'notifications', label: 'Notifications' },
-  ], [user?.role, unreadByType.messages, unreadByType.meetings, unreadByType.quizzes]);
-  const routeSections = [...navItems, { id: 'profile' }, { id: 'settings' }];
+
+  // Primary page tabs shown in main desktop navbar
+  const primaryNavTabs = useMemo(() => [
+    { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'tutor', label: 'SparkAI Tutor', icon: Sparkles, highlight: true },
+    { id: 'classrooms', label: 'Classrooms', icon: BookOpen },
+    ...(user?.role === 'student' ? [{ id: 'assignments', label: 'Assignments', icon: GraduationCap }] : []),
+    { id: 'quizzes', label: 'AI Quizzes', icon: CheckCircle2, badge: unreadByType?.quizzes },
+    { id: 'meetings', label: 'Meetings', icon: Video, badge: unreadByType?.meetings },
+    { id: 'resources', label: 'Resources', icon: FolderOpen },
+    { id: 'analytics', label: user?.role === 'student' ? 'Progress' : 'Analytics', icon: BarChart2 },
+    ...(user?.role === 'admin' ? [{ id: 'admin', label: 'Admin Suite', icon: ShieldCheck }] : []),
+  ], [user?.role, unreadByType?.meetings, unreadByType?.quizzes]);
+
+  // All valid dashboard sections (including action-bar routes)
+  const routeSections = useMemo(() => [
+    ...primaryNavTabs,
+    { id: 'messages' },
+    { id: 'notifications' },
+    { id: 'profile' },
+    { id: 'settings' },
+  ], [primaryNavTabs]);
+
   const activeSection = routeSections.some((item) => item.id === section) ? section : 'home';
   const DashboardIcon = dashboardCopy[user?.role]?.icon || Activity;
   const dashboardAccent = dashboardCopy[user?.role]?.accent || 'from-blue-500 to-indigo-500';
@@ -106,48 +135,180 @@ export default function DashboardPage() {
           variants={fadeIn}
           initial="hidden"
           animate="visible"
-          className="glass-panel sticky top-3 z-40 mb-4 p-2.5 sm:top-4 sm:mb-6 sm:p-4"
+          className="glass-panel sticky top-3 z-40 mb-4 p-2.5 sm:top-4 sm:mb-6 sm:px-4 sm:py-3"
         >
+          {/* Mobile Top Bar */}
           <div className="flex items-center justify-between gap-3 xl:hidden">
             <BrandLogo compact markOnly />
-            <button
-              type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-700/60 sm:h-10 sm:w-10 xl:hidden"
-              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={mobileMenuOpen}
-              onClick={() => setMobileMenuOpen((open) => !open)}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5 stroke-[3]" />}
-            </button>
-          </div>
-          <div className={`${mobileMenuOpen ? 'mt-3 flex' : 'hidden'} flex-col gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 sm:gap-2 xl:mt-0 xl:flex xl:flex-row xl:flex-nowrap xl:items-center xl:justify-between xl:gap-3`}>
-            <BrandLogo compact markOnly className="mb-2 hidden shrink-0 xl:flex xl:mb-0" />
-            <div className="flex flex-col gap-1.5 sm:gap-2 xl:min-w-0 xl:flex-1 xl:flex-row xl:flex-nowrap xl:items-center xl:justify-end xl:overflow-hidden xl:whitespace-nowrap">
-              {navItems.map((item) => (
-                <Link
-                  key={item.id}
-                  className={`rounded-xl px-3 py-2 transition-all duration-200 sm:px-4 xl:shrink-0 xl:rounded-full xl:px-3 ${activeSection === item.id
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md shadow-blue-500/25'
-                      : 'hover:bg-slate-100 dark:hover:bg-slate-700/50'
-                    }`}
-                  to={item.id === 'home' ? '/dashboard' : `/dashboard/${item.id}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <span className="relative inline-flex items-center">
-                    {item.id === 'notifications' && <Bell className={`mr-1 h-4 w-4 ${unreadCount > 0 ? 'animate-pulse text-red-500' : ''}`} />}
-                    {item.label}
-                    {item.id === 'notifications' && unreadCount > 0 && (
-                      <span className="ml-2 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black text-white shadow-lg shadow-red-500/30 ring-2 ring-red-200 dark:ring-red-400/40">{unreadCount > 99 ? '99+' : unreadCount}</span>
-                    )}
-                    {item.id !== 'notifications' && item.badge > 0 && (
-                      <span className="ml-2 inline-flex h-2.5 w-2.5 rounded-full bg-red-500 shadow-lg shadow-red-500/40 ring-2 ring-red-100 dark:ring-red-400/30" aria-label="New items" />
-                    )}
+            <div className="flex items-center gap-2">
+              <Link
+                to="/dashboard/messages"
+                className={`relative inline-flex h-9 w-9 items-center justify-center rounded-xl border transition ${
+                  activeSection === 'messages'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                    : 'border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200'
+                }`}
+                aria-label="Messages"
+              >
+                <MessageSquare className="h-4 w-4" />
+                {unreadByType?.messages > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                   </span>
-                </Link>
-              ))}
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-3 dark:border-slate-700 xl:ml-2 xl:mt-0 xl:shrink-0 xl:justify-start xl:border-l xl:border-t-0 xl:pl-3 xl:pt-0">
+                )}
+              </Link>
+
+              <Link
+                to="/dashboard/notifications"
+                className={`relative inline-flex h-9 w-9 items-center justify-center rounded-xl border transition ${
+                  activeSection === 'notifications'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                    : 'border-slate-300 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200'
+                }`}
+                aria-label="Notifications"
+              >
+                <Bell className={`h-4 w-4 ${unreadCount > 0 ? 'text-red-500' : ''}`} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+
               <ThemeToggle />
+
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-700/60"
+                aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen((open) => !open)}
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5 stroke-[2.5]" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop & Expanded Mobile Navbar */}
+          <div className={`${mobileMenuOpen ? 'mt-3 flex' : 'hidden'} flex-col gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 xl:mt-0 xl:flex xl:flex-row xl:flex-nowrap xl:items-center xl:justify-between xl:gap-3`}>
+            {/* Logo */}
+            <BrandLogo compact markOnly className="hidden shrink-0 xl:flex" />
+
+            {/* Main Tabs (Horizontal Scroll Safe on Desktop) */}
+            <div className="flex flex-col gap-1 sm:gap-1.5 xl:flex-row xl:flex-nowrap xl:items-center xl:gap-1.5 xl:overflow-x-auto no-scrollbar xl:py-0.5">
+              {primaryNavTabs.map((item) => {
+                const Icon = item.icon || Activity;
+                const isActive = activeSection === item.id;
+                const isHighlight = item.highlight;
+
+                let linkClasses = 'rounded-xl px-3 py-2 text-xs font-semibold transition-all sm:px-3.5 xl:shrink-0 xl:rounded-full xl:px-3 xl:py-1.5 flex items-center gap-1.5';
+
+                if (isActive) {
+                  linkClasses += isHighlight
+                    ? ' bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/25 ring-1 ring-white/20'
+                    : ' bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25';
+                } else if (isHighlight) {
+                  linkClasses += ' border border-purple-200/90 bg-purple-50/70 text-purple-700 hover:bg-purple-100 dark:border-purple-800/60 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/50';
+                } else {
+                  linkClasses += ' text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-white';
+                }
+
+                return (
+                  <Link
+                    key={item.id}
+                    className={linkClasses}
+                    to={item.id === 'home' ? '/dashboard' : `/dashboard/${item.id}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Icon className={`h-3.5 w-3.5 shrink-0 ${isHighlight && !isActive ? 'text-purple-600 dark:text-purple-400' : ''}`} />
+                    <span className="whitespace-nowrap">{item.label}</span>
+                    {item.badge > 0 && (
+                      <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-red-500 shadow-sm" aria-label="New items" />
+                    )}
+                  </Link>
+                );
+              })}
+
+              {/* Mobile-only Messages & Notifications items */}
+              <div className="xl:hidden flex flex-col gap-1 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <Link
+                  to="/dashboard/messages"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold flex items-center justify-between ${
+                    activeSection === 'messages' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>{user?.role === 'student' ? 'Classroom Chat' : 'Messages'}</span>
+                  </span>
+                  {unreadByType?.messages > 0 && (
+                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] text-white font-bold">New</span>
+                  )}
+                </Link>
+
+                <Link
+                  to="/dashboard/notifications"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold flex items-center justify-between ${
+                    activeSection === 'notifications' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Bell className="h-4 w-4" />
+                    <span>Notifications</span>
+                  </span>
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] text-white font-bold">{unreadCount}</span>
+                  )}
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Action Bar on Desktop */}
+            <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-200 pt-3 dark:border-slate-800 xl:mt-0 xl:shrink-0 xl:justify-start xl:border-l xl:border-t-0 xl:pl-3 xl:pt-0">
+              {/* Messages Icon Button */}
+              <Link
+                to="/dashboard/messages"
+                title={user?.role === 'student' ? 'Classroom Chat' : 'Messages'}
+                className={`relative hidden h-8 w-8 items-center justify-center rounded-xl border transition xl:inline-flex ${
+                  activeSection === 'messages'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/80'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                {unreadByType?.messages > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                  </span>
+                )}
+              </Link>
+
+              {/* Notifications Icon Button */}
+              <Link
+                to="/dashboard/notifications"
+                title="Notifications"
+                className={`relative hidden h-8 w-8 items-center justify-center rounded-xl border transition xl:inline-flex ${
+                  activeSection === 'notifications'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700/80'
+                }`}
+              >
+                <Bell className={`h-4 w-4 ${unreadCount > 0 ? 'text-red-500' : ''}`} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+
+              <div className="hidden xl:block">
+                <ThemeToggle />
+              </div>
+
               <ProfileDropdown />
             </div>
           </div>
@@ -376,6 +537,7 @@ export default function DashboardPage() {
           className="mt-6"
         >
           {activeSection === 'classrooms' && <ClassroomPanel role={user?.role} />}
+          {activeSection === 'tutor' && <StudyAssistantPanel role={user?.role} />}
           {activeSection === 'assignments' && <AssignmentPanel role={user?.role} />}
           {activeSection === 'quizzes' && <QuizPanel role={user?.role} />}
           {activeSection === 'analytics' && <AnalyticsPanel role={user?.role} analytics={dashboard?.analytics || {}} />}

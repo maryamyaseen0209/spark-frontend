@@ -1,10 +1,10 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BarChart3, CheckCircle2, Clock3, FileUp, Play, Save, Send, Trash2 } from 'lucide-react';
 import { api, getApiErrorMessage } from '../api/client.js';
 import FieldError from './FieldError.jsx';
 import SystemAlert from './SystemAlert.jsx';
 
-const generatorDefaults = { title: '', subject: '', classroom: '', durationMinutes: 30, passingScore: 60, totalQuestions: 10, difficulty: 'mixed', questionType: 'multiple-choice', dueAt: '', description: '' };
+const generatorDefaults = { title: '', topic: '', subject: '', classroom: '', durationMinutes: 30, passingScore: 60, totalQuestions: 5, difficulty: 'mixed', questionType: 'multiple-choice', dueAt: '', description: '' };
 const secondsLeft = (endsAt) => Math.max(0, Math.ceil((new Date(endsAt).getTime() - Date.now()) / 1000));
 const formatTime = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
@@ -12,6 +12,7 @@ export default function QuizPanel({ role }) {
   const [quizzes, setQuizzes] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
   const [form, setForm] = useState(generatorDefaults);
+  const [generationMode, setGenerationMode] = useState('topic'); // 'topic' | 'document'
   const [documentFile, setDocumentFile] = useState(null);
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [activeQuiz, setActiveQuiz] = useState(null);
@@ -58,18 +59,24 @@ export default function QuizPanel({ role }) {
 
   const generateQuiz = async (event) => {
     event.preventDefault();
-    if (!documentFile) return setResponse({ type: 'error', message: 'Please upload a PDF, DOCX, TXT, MD, or CSV document.' });
     setBusyId('generate');
     try {
-      const payload = new FormData();
-      Object.entries(form).forEach(([key, value]) => payload.append(key, value));
-      payload.append('document', documentFile);
-      const res = await api.post('/quizzes/generate-from-document', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
+      let res;
+      if (generationMode === 'topic') {
+        if (!form.topic?.trim()) return setResponse({ type: 'error', message: 'Please enter a quiz topic to generate questions.' });
+        res = await api.post('/quizzes/generate-from-topic', form);
+      } else {
+        if (!documentFile) return setResponse({ type: 'error', message: 'Please upload a PDF, DOCX, TXT, MD, or CSV document.' });
+        const payload = new FormData();
+        Object.entries(form).forEach(([key, value]) => payload.append(key, value));
+        payload.append('document', documentFile);
+        res = await api.post('/quizzes/generate-from-document', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
       setEditingQuiz(res.data.quiz);
       setResponse({ type: 'success', message: res.data.message });
       setForm(generatorDefaults);
       setDocumentFile(null);
-      event.target.reset();
+      if (event.target.reset) event.target.reset();
       loadData();
     } catch (error) {
       setResponse({ type: 'error', message: getApiErrorMessage(error) });
@@ -158,18 +165,55 @@ export default function QuizPanel({ role }) {
           <h2 className="section-title">AI Quizzes</h2>
           <p className="mt-2 text-sm text-slate-400">Teachers generate quizzes from documents, preview and edit drafts, then publish timed attempts for students.</p>
         </div>
-        <div className="flex items-center gap-3 rounded-2xl bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-200">{quizzes.length} total / {publishedCount} published</div>
+        <div className="flex items-center gap-3 rounded-2xl bg-cyan-500/10 px-4 py-3 text-sm font-bold text-cyan-800 dark:text-cyan-200">{quizzes.length} total / {publishedCount} published</div>
       </div>
       <div className="mt-5"><SystemAlert type={response.type} message={response.message} /></div>
 
       {canManage && (
         <form onSubmit={generateQuiz} className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-white/10 dark:bg-slate-950/50 dark:shadow-none">
-          <div className="flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white"><FileUp className="h-5 w-5 text-spark-500" /> Generate from document</div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-800">
+            <div className="flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
+              <FileUp className="h-5 w-5 text-spark-500" />
+              <span>AI Quiz Generator</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-xl bg-slate-200/70 p-1 text-xs font-bold dark:bg-slate-800">
+              <button
+                type="button"
+                onClick={() => setGenerationMode('topic')}
+                className={`rounded-lg px-3 py-1.5 transition ${
+                  generationMode === 'topic'
+                    ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                }`}
+              >
+                ⚡ From Topic Prompt
+              </button>
+              <button
+                type="button"
+                onClick={() => setGenerationMode('document')}
+                className={`rounded-lg px-3 py-1.5 transition ${
+                  generationMode === 'document'
+                    ? 'bg-white text-blue-600 shadow-sm dark:bg-slate-700 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                }`}
+              >
+                📄 From Document File
+              </button>
+            </div>
+          </div>
+
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <input name="title" value={form.title} onChange={updateForm} className="input" placeholder="Quiz title" required />
+            {generationMode === 'topic' ? (
+              <input name="topic" value={form.topic} onChange={updateForm} className="input" placeholder="Topic (e.g. Newton's Laws)" required />
+            ) : (
+              <input onChange={(event) => setDocumentFile(event.target.files?.[0] || null)} className="input" type="file" accept=".pdf,.docx,.txt,.md,.csv" required />
+            )}
             <input name="subject" value={form.subject} onChange={updateForm} className="input" placeholder="Subject" required />
-            <select name="classroom" value={form.classroom} onChange={updateForm} className="input" required><option value="">Choose classroom</option>{classrooms.map((room) => <option key={room._id} value={room._id}>{room.name}</option>)}</select>
-            <input onChange={(event) => setDocumentFile(event.target.files?.[0] || null)} className="input" type="file" accept=".pdf,.docx,.txt,.md,.csv" required />
+            <select name="classroom" value={form.classroom} onChange={updateForm} className="input" required>
+              <option value="">Choose classroom</option>
+              {classrooms.map((room) => <option key={room._id} value={room._id}>{room.name}</option>)}
+            </select>
             <input name="durationMinutes" value={form.durationMinutes} onChange={updateForm} className="input" type="number" min="1" placeholder="Minutes" />
             <input name="passingScore" value={form.passingScore} onChange={updateForm} className="input" type="number" min="0" max="100" placeholder="Pass %" />
             <input name="totalQuestions" value={form.totalQuestions} onChange={updateForm} className="input" type="number" min="1" max="20" placeholder="Questions" />
@@ -178,7 +222,9 @@ export default function QuizPanel({ role }) {
             <input name="dueAt" value={form.dueAt} onChange={updateForm} className="input" type="datetime-local" title="Submission deadline" />
           </div>
           <textarea name="description" value={form.description} onChange={updateForm} className="input mt-3" placeholder="Optional instructions for students" />
-          <button disabled={busyId === 'generate'} className="btn-primary mt-4 gap-2"><FileUp className="h-4 w-4" /> {busyId === 'generate' ? 'Generating with AI...' : 'Generate AI draft'}</button>
+          <button disabled={busyId === 'generate'} className="btn-primary mt-4 gap-2">
+            <FileUp className="h-4 w-4" /> {busyId === 'generate' ? 'Generating with AI...' : 'Generate AI draft'}
+          </button>
         </form>
       )}
 
